@@ -1,0 +1,107 @@
+---
+title: "Solution for ISLR chapter2 Q.8 Q.9, and Q.10"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Thursday, April 18, 2019*"
+output: html_notebook
+---
+
+I am making this analysis for solve the excercise of ISLR chapter2 Q.8.
+
+```{r}
+college <- read.csv("E:/AI/ISLR/College.csv", header = T)
+fix(college)
+
+rownames(college) <- college[,1]
+fix(college)
+
+college <- college[,-1]
+fix(college)
+
+summary(college)
+
+pairs(college[,1:10])
+
+plot(college$Private, college$Outstate, xlab='Private', ylab='Outstate', main='Private vs Outstate')
+
+college$Elite <- as.factor(ifelse(college$Top10perc>50, "Yes", "No"))
+summary(college$Elite)
+plot(college$Elite, college$Outstate)
+
+par(mfrow=c(2,2))
+hist(college$Books, breaks = 5)
+hist(college$Books, breaks = 15)
+hist(college$Books, breaks = 40)
+hist(college$Books, breaks = 100)
+
+library(dplyr)
+library(ggplot2)
+
+glimpse(college)
+college %>% ggplot(aes(Elite, S.F.Ratio)) + geom_boxplot()
+college %>% ggplot(aes(Elite, Books)) + geom_boxplot()
+college %>% ggplot(aes(Elite, Top10perc)) + geom_boxplot()
+college %>% ggplot(aes(Elite, Apps)) + geom_boxplot()
+college %>% ggplot(aes(Elite, F.Undergrad)) + geom_boxplot()
+college %>% ggplot(aes(Elite, P.Undergrad)) + geom_boxplot()
+college %>% ggplot(aes(Elite, Room.Board)) + geom_boxplot()
+college %>% ggplot(aes(Elite, Personal)) + geom_boxplot()
+```
+
+Q.9
+
+```{r}
+auto <- read.table('http://www-bcf.usc.edu/~gareth/ISL/Auto.data', header = T, na.strings = '?')
+auto[!complete.cases(auto),]
+auto <- na.omit(auto)
+
+fix(auto)
+auto$origin <- factor(auto$origin)
+auto$cylinders <- factor(auto$cylinders)
+
+range(auto$displacement)
+summary(auto)
+
+auto2 <- auto[-c(10:85),]
+summary(auto2)
+
+source("C:/Users/KS-Park/OneDrive/Documents/panel.cor.R")
+pairs(auto, upper.panel = panel.cor)
+plot(auto$cylinders, auto$mpg)
+plot(auto$origin, auto$mpg)
+```
+
+Q.10
+
+```{r}
+library(MASS)
+
+Boston
+
+?Boston
+
+pairs(Boston, upper.panel = panel.cor)
+cor(Boston)
+
+glimpse(Boston)
+summary(Boston$dis)
+hist(Boston$dis)
+dis4 <- Boston %>% filter(dis>4)
+dis4[order(dis4$medv),]
+```
+```{r}
+hist(dis4$crim)
+hist(dis4$zn)
+
+Boston %>%
+  filter(rm > 7) %>%
+  summarise(n())
+
+Boston %>%
+  filter(rm > 8) %>%
+  summarise(n())
+
+Boston %>%
+  filter(rm > 8) %>%
+  summary()
+```
+
