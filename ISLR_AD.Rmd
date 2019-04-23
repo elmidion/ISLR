@@ -1,0 +1,159 @@
+---
+title: "The analysis of Advertising data for ISLR"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Monday, April 22, 2019*"
+output: html_notebook
+---
+
+The goal is to understand statistical learning about linear regression.  
+The data is from 'Advertising'  
+
+```{r}
+Ad <- read.csv("E:/AI/ISLR/Advertising.csv")
+str(Ad)
+n = 200
+p = 3
+```
+
+It has 200 observations, index of markets, 3 features and `sales` label.  
+
+In simple linear regression, we assume one feature has correlation with label.  
+Therefore there are two coefficients to be estimate.  
+
+How do we get coefficients?  
+
+We have to use MMSE(minimum mean squared error) method.  
+The mean squared error is calculated from ��(Y - Xモ)^2.  
+The matrix X is has 1 as variable to intercept.  
+
+Mean squared error has a form of quadratic equation.  
+We can differentiate this equation to minimize the MSE.  
+
+As a result, モ = solve(t(X)X)t(X)Y.  
+Now I am goint to get モ.  
+
+```{r}
+Y <- Ad$sales
+Y <- as.matrix(Y)
+
+b0 <- rep(1, 200)
+TV.X <- cbind(b0, Ad$TV)
+TV.X <- as.matrix(TV.X)
+colnames(TV.X) <- c('モ0', 'モ1')
+
+TV.coefficients <- solve(t(TV.X) %*% TV.X) %*% t(TV.X) %*% Y
+TV.coefficients
+```
+
+This result means sales = 7.03259355 + 0.04753664*TV  
+I draw it as graph.  
+
+```{r}
+x = seq(0,300)
+y = 7.03259355 + 0.04753664*x
+plot(Ad$TV, Ad$sales, type = 'n'); points(Ad$TV, Ad$sales); lines(x, y, type = 'l')
+```
+
+The coefficients are compared with coefficients from linear regresion function as basic function of R.  
+
+```{r}
+Ad <- Ad[,-1]
+Ad.lm <- lm(sales ~ TV, data=Ad)
+
+TV.coefficients; Ad.lm$coefficients
+```
+
+We can see they are same.  
+
+This process is point estimation for coefficients.  
+It can be confirmed by hypothesis test whether there is a correlation between 'TV' and 'sales'.  
+
+The null hypothesis is that モ1 is zero. 
+We don't know the standard deviation of population.  
+However, We can use t-distribution.  
+
+t = (observation - mean of population)/standard error of sample.  
+Standard error of sample is assumed by sqrt(residual sum of squares/(n-2)).  
+
+The interval estimation is モ1 ‐ sd. It is 0.04753664 ‐ 1.670542, (-1623006, 1.1718079)  
+
+```{r}
+TV.RSS <- sum((Ad$sales-(0.04753664*Ad$TV+7.03259355))^2)
+TV.RSS
+TV.SE.b1 <- sqrt((sqrt(RSS/(n-2)))^2/(sum((Ad$TV-mean(Ad$TV))^2)))
+TV.SE.b1
+
+TV.t <- (0.04753644 - 0)/SE.b1
+TV.t
+TV.pvalue = dt(t, 198)
+
+TV.b1.df <- data.frame('coeffient' = TV.coefficients[2], 'standard error' = TV.SE.b1, 't-statistics' = TV.t, 'p-value' = TV.pvalue)
+TV.b1.df
+```
+
+About intercept of regression by TV,  
+
+```{r}
+TV.coefficients[1]
+
+TV.SE.b0 <- sqrt(((sqrt(TV.RSS/(n-2)))^2)*(1/n + (mean(Ad$TV)^2)/(sum((Ad$TV-mean(Ad$TV))^2))))
+TV.SE.b0
+
+TV.t.b0 <- (TV.coefficients[1] - 0)/TV.SE.b0
+TV.t.b0
+
+TV.b0.pvalue <- dt(TV.t.b0, n-2)
+
+TV.b0.df <- data.frame('coeffient' = TV.coefficients[1], 'standard error' = TV.SE.b0, 't-statistics' = TV.t.b0, 'p-value' = TV.b0.pvalue)
+TV.b0.df
+
+rbind(TV.b0.df, TV.b1.df)
+```
+
+
+Apply this method to radio,
+
+```{r}
+Rd.X <- Ad$radio
+Rd.X <- cbind(b0, Rd.X)
+
+Rd.coefficients <- solve(t(Rd.X) %*% Rd.X) %*% t(Rd.X) %*% Y
+rownames(Rd.coefficients) <- c('モ0', 'モ1')
+Rd.coefficients
+
+Rd.RSS <- sum((Ad$sales - (9.3116381 + 0.2024958*Ad$radio))^2)
+Rd.SE.b1 <- sqrt((sqrt(Rd.RSS/(n-2)))^2/(sum((Ad$radio - mean(Ad$radio))^2)))
+Rd.SE.b1
+
+Rd.t.b1 <- (Rd.coefficients[2] - 0)/Rd.SE.b1
+Rd.t.b1
+
+Rd.pvalue <- dt(Rd.t.b1, n-2)
+
+Rd.b1.df <- data.frame('coeffient' = Rd.coefficients[2], 'standard error' = Rd.SE.b1, 't-statistics' = Rd.t.b1, 'p-value' = Rd.pvalue)
+Rd.b1.df
+```
+
+Apply same method to newspaper,
+```{r}
+NW.X <- Ad$newspaper
+NW.X <- cbind(b0, NW.X)
+NW.X
+
+NW.coefficients <- solve(t(NW.X) %*% NW.X) %*% t(NW.X) %*% Y
+rownames(NW.coefficients) <- c('モ0', 'モ1')
+NW.coefficients
+
+NW.RSS <- sum((Ad$sales - (12.3514071 + 0.0546931 * Ad$newspaper))^2)
+NW.SE.b1 <- sqrt((sqrt(NW.RSS/(n-2)))^2/(sum((Ad$newspaper - mean(Ad$newspaper))^2)))
+NW.SE.b1
+
+NW.t.b1 <- (NW.coefficients[2] - 0)/NW.SE.b1
+NW.t.b1
+
+NW.b1.pvalue <- dt(NW.t.b1, n-2)
+
+NW.b1.df <- data.frame('coeffient' = NW.coefficients[2], 'standard error' = NW.SE.b1, 't-statistics' = NW.t.b1, 'p-value' = NW.b1.pvalue)
+NW.b1.df
+```
+
