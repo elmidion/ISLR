@@ -1,7 +1,7 @@
 ---
 title: "The analysis of Advertising data for ISLR"
 author: "*Kiseong Park; Doctor, Data scientist*"
-date: "*Monday, April 22, 2019*"
+date: "*Monday, April 22-23, 2019*"
 output: html_notebook
 ---
 
@@ -83,9 +83,9 @@ TV.RSS
 TV.SE.b1 <- sqrt((sqrt(RSS/(n-2)))^2/(sum((Ad$TV-mean(Ad$TV))^2)))
 TV.SE.b1
 
-TV.t <- (0.04753644 - 0)/SE.b1
+TV.t <- (0.04753644 - 0)/TV.SE.b1
 TV.t
-TV.pvalue = dt(t, 198)
+TV.pvalue = pt(-TV.t, 198) * 2 
 
 TV.b1.df <- data.frame('coeffient' = TV.coefficients[2], 'standard error' = TV.SE.b1, 't-statistics' = TV.t, 'p-value' = TV.pvalue)
 TV.b1.df
@@ -102,7 +102,7 @@ TV.SE.b0
 TV.t.b0 <- (TV.coefficients[1] - 0)/TV.SE.b0
 TV.t.b0
 
-TV.b0.pvalue <- dt(TV.t.b0, n-2)
+TV.b0.pvalue <- pt(-abs(TV.t.b0), n-2) * 2
 
 TV.b0.df <- data.frame('coeffient' = TV.coefficients[1], 'standard error' = TV.SE.b0, 't-statistics' = TV.t.b0, 'p-value' = TV.b0.pvalue)
 TV.b0.df
@@ -128,7 +128,7 @@ Rd.SE.b1
 Rd.t.b1 <- (Rd.coefficients[2] - 0)/Rd.SE.b1
 Rd.t.b1
 
-Rd.pvalue <- dt(Rd.t.b1, n-2)
+Rd.pvalue <- pt(-abs(Rd.t.b1), n-2) * 2
 
 Rd.b1.df <- data.frame('coeffient' = Rd.coefficients[2], 'standard error' = Rd.SE.b1, 't-statistics' = Rd.t.b1, 'p-value' = Rd.pvalue)
 Rd.b1.df
@@ -151,9 +151,77 @@ NW.SE.b1
 NW.t.b1 <- (NW.coefficients[2] - 0)/NW.SE.b1
 NW.t.b1
 
-NW.b1.pvalue <- dt(NW.t.b1, n-2)
+NW.b1.pvalue <- pt(-abs(NW.t.b1), n-2) * 2
 
 NW.b1.df <- data.frame('coeffient' = NW.coefficients[2], 'standard error' = NW.SE.b1, 't-statistics' = NW.t.b1, 'p-value' = NW.b1.pvalue)
 NW.b1.df
 ```
+
+Now, I will do multiple regression for advertising data.  
+First, coefficients of multiple regression will be assumed.  
+The regression has 3 independent variables; TV, radio, and newspaper.  
+And it also has intercept.  
+Therefore, the matrix of input features 'X' has 4 columns.
+
+```{r message=FALSE}
+Ad.X <- cbind(b0, Ad$TV, Ad$radio, Ad$newspaper)
+colnames(Ad.X) <- c('モ0', 'モ1', 'モ2', 'モ3')
+
+Ad.m.coefficients <- solve(t(Ad.X) %*% Ad.X) %*% t(Ad.X) %*% Y
+Ad.m.coefficients
+
+M.RSS <- sum((Ad$sales - (2.938889369 + 0.045764645*Ad$TV + 0.188530017 * Ad$radio -0.001037493 * Ad$newspaper))^2)
+
+SE.m <- diag(sqrt(solve(t(Ad.X) %*% Ad.X) * M.RSS/(n-4)))
+SE.m
+
+M.t.b0 <- (Ad.m.coefficients[1] - 0)/SE.m[1]
+M.t.b0
+
+M.t.b1 <- (Ad.m.coefficients[2] - 0)/SE.m[2]
+M.t.b1
+
+M.t.b2 <- (Ad.m.coefficients[3] - 0)/SE.m[3]
+M.t.b2
+
+M.t.b3 <- (Ad.m.coefficients[4] - 0)/SE.m[4]
+M.t.b3
+
+M.pvalue.b0 <- pt(-abs(M.t.b0), n-4) * 2
+M.pvalue.b0
+
+M.pvalue.b1 <- pt(-abs(M.t.b1), n-4) * 2
+M.pvalue.b1
+
+M.pvalue.b2 <- pt(-abs(M.t.b2), n-4) * 2
+M.pvalue.b2
+
+M.pvalue.b3 <- pt(-abs(M.t.b3), n-4) * 2
+M.pvalue.b3
+
+M.df <- data.frame('coeffient' = Ad.m.coefficients, 'standard error' = SE.m, 't-statistics' = c(M.t.b0, M.t.b1, M.t.b2, M.t.b3),  'p-value' = c(M.pvalue.b0, M.pvalue.b1, M.pvalue.b2, M.pvalue.b3))
+M.df
+```
+
+How to get the standard errors of multiple regression is here(https://support.minitab.com/ko-kr/minitab/18/help-and-how-to/modeling-statistics/regression/how-to/fit-regression-model/methods-and-formulas/coefficients/)
+
+
+How powerful is this multiple regression model?
+
+```{r}
+M.TSS <- sum((Ad$sales - mean(Ad$sales))^2)
+R2 <- (M.TSS-M.RSS)/M.TSS
+R2
+
+M.RSE <- sqrt(M.RSS/(n-4))
+M.RSE
+
+F.statistics <- ((M.TSS - M.RSS)/p)/(RSS/(n-p-1))
+F.statistics
+```
+
+The R-squared of this model is 0.897.  
+The rasidual standard error is 1.686.  
+F-statistics is 570.
+
 
