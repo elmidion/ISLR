@@ -1,0 +1,140 @@
+---
+title: "For solve the Q8 of chapter3 in ISLR"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Wednesday, April 24, 2019*"
+output: html_notebook
+---
+
+This question needs the data from 'Auto'.  
+First, I have to load 'Auto' data.
+
+```{r}
+Auto <- read.csv("E:/AI/ISLR/Auto.csv", na.strings = '?')
+Auto <- na.omit(Auto)
+str(Auto)
+```
+
+The 'Auto' data has 397 observations and 9 variables.  
+
+I should predict the dependent variable `mpg` using simple linear regression on the independent variable `horsepower`.
+
+```{r}
+lm.fit <- lm(mpg ~ horsepower, data=Auto)
+summary(lm.fit)
+```
+```{r}
+predict(lm.fit, data.frame(horsepower = 98), interval='confidence')
+predict(lm.fit, data.frame(horsepower = 98), interval='prediction')
+
+plot(Auto$horsepower, Auto$mpg); abline(39.935861, -0.157845)
+
+plot(lm.fit)
+```
+
+```{r}
+source("C:/Users/KS-Park/OneDrive/Documents/panel.cor.R")
+pairs(Auto, upper.panel = panel.cor)
+
+cor(Auto[,-9])
+
+lm.afit <- lm(mpg ~ .-name, Auto)
+summary(lm.afit)
+```
+
+```{r}
+par(mfrow=c(2,2)); plot(lm.afit)
+```
+
+```{r}
+lm.fit2 <- lm(mpg ~ .^2, Auto[,-9])
+summary(lm.fit2)
+```
+
+```{r}
+library(ggplot2)
+library(reshape2)
+
+Auto.m <- melt(Auto[,-9], id.vars = 'mpg')
+
+head(Auto.m)
+
+ggplot(Auto.m, aes(value, mpg)) + geom_point() + facet_wrap(~variable)
+ggplot(Auto, aes(displacement, mpg)) + geom_point()
+
+
+lm.fitt <- lm(mpg ~ displacement:displacement, Auto[,-9])
+summary(lm.fitt)
+```
+
+```{r}
+library(dplyr)
+library(ISLR)
+glimpse(Carseats)
+
+Car.lm3 <- lm(Sales ~ Price + Urban + US, data= Carseats)
+summary(Car.lm3)
+
+Car.lm2 <- lm(Sales ~ Price + US, data= Carseats)
+summary(Car.lm2)
+confint(Car.lm3)
+Car.lm2 %>% plot()
+```
+
+```{r}
+set.seed(1)
+x = rnorm(100)
+y = 2*x+rnorm(100)
+
+lm(x ~ y) %>% summary()
+
+lm(y ~ x) %>% summary()
+```
+
+```{r}
+set.seed(1)
+X <- rnorm(100, 0, 1)
+eps <- rnorm(100, 0, 0.25)
+
+Y = -1 + 0.5*X + eps
+length(Y)
+
+plot(X, Y)
+
+lm(Y ~ X) %>% summary()
+lm(Y ~ X + I(X^2)) %>% summary()
+
+plot(X, Y); abline(-0.98789, 0.52655, col='red')
+```
+
+```{r}
+set.seed(1)
+x1 = runif(100)
+x2 = 0.5*x1 + rnorm(100)/10
+y = 2+2*x1 + 0.3*x2 + rnorm(100)
+
+plot(x1, x2)
+
+lm(y ~ x1 + x2) %>% summary()
+lm(y ~ x1) %>% summary()
+lm(y ~ x2) %>% summary()
+
+x1 <- c(x1, 0.1)
+x2 <- c(x2, 0.8)
+y <- c(y, 6)
+
+lm(y ~ x1 + x2) %>% plot()
+
+```
+
+```{r}
+library(MASS)
+glimpse(Boston)
+
+lm.fit <- lm(crim ~ ., Boston)
+
+cor(Boston)
+
+library(car)
+vif(lm.fit)
+```
+
