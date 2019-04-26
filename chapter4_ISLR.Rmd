@@ -1,0 +1,325 @@
+---
+title: "For solve the questions of chapter4 in ISLR"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Friday, April 26, 2019*"
+output: html_notebook
+---
+
+**Question 10.**    
+This question needs 'Weekly' data from ISLR package.
+
+```{r}
+library(ISLR)
+head(Weekly)
+summary(Weekly)
+```
+
+*Exploratory data analysis*
+
+```{r}
+library(dplyr)
+library(ggplot2)
+ggplot(Weekly, aes(Year, fill=Direction)) + geom_bar()
+
+ggplot(Weekly, aes(Lag1, fill=Direction)) + geom_density(alpha=0.5)
+ggplot(Weekly, aes(Lag2, fill=Direction)) + geom_density(alpha=0.5) 
+ggplot(Weekly, aes(Lag3, fill=Direction)) + geom_density(alpha=0.5) 
+ggplot(Weekly, aes(Lag4, fill=Direction)) + geom_density(alpha=0.5) 
+ggplot(Weekly, aes(Lag5, fill=Direction)) + geom_density(alpha=0.5) 
+ggplot(Weekly, aes(Volume, fill=Direction)) + geom_density(alpha=0.5) 
+ggplot(Weekly, aes(Today, fill=Direction)) + geom_density(alpha=0.5) 
+
+cor(Weekly[,-9])
+source("C:/Users/KS-Park/OneDrive/Documents/panel.cor.R")
+pairs(Weekly, upper.panel = panel.cor)
+```
+
+*GLM*
+
+```{r}
+wk.glm <- glm(Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume, data=Weekly, family='binomial')
+wk.glm %>% summary() 
+
+yhat_glm <- predict(wk.glm, type='response')
+pred_glm <- rep('Down', 1089)
+pred_glm[yhat_glm > 0.5] <- 'Up'
+table(Weekly$Direction, pred_glm)
+
+Acc_glm <- (54+557)/1089
+Acc_glm
+
+Wk.test <- Weekly %>%
+  filter(Year == 2009 | Year == 2010)
+
+Wk.training <- setdiff(Weekly, Wk.test)
+
+yhat_glm2.t <- predict(wk.glm2, newdata=Wk.test, type='response')
+yhat_pred2.t <- rep('Down', 104)
+yhat_pred2.t[yhat_glm2.t >0.5] <- 'Up'
+table(Wk.test$Direction, yhat_pred2.t)
+
+Acc_glm2 <- (9+56)/104
+Acc_glm2
+```
+
+*LDA*
+
+```{r}
+Wk.lda <- lda(Direction ~ Lag2, Wk.training)
+Wk.lda
+
+yhat_lda <- predict(Wk.lda, newdata = Wk.test)
+table(Wk.test$Direction, yhat_lda$class)
+
+Acc_lda <-(9+56)/104 
+Acc_lda
+```
+
+*QDA*
+
+```{r}
+Wk.qda <- qda(Direction ~ Lag2, Wk.training)
+Wk.qda
+yhat_qda <- predict(Wk.qda, newdata = Wk.test)
+table(Wk.test$Direction, yhat_qda$class)
+
+Acc_qda <- (0+61)/104
+Acc_qda
+```
+
+*KNN*
+
+```{r}
+library(class)
+
+set.seed(0426)
+yhat_knn <- knn(as.matrix(Wk.training[,3]), as.matrix(Wk.test[,3]), Wk.training[,9], k=1)
+table(Wk.test$Direction, yhat_knn)
+
+Acc_knn <- (21+32)/104
+Acc_knn
+```
+
+*Model selection*
+
+```{r}
+c(Acc_glm2, Acc_lda, Acc_qda, Acc_knn)
+```
+
+Logistric regression and LDA show best accuracy in these analysis.
+
+* For another K*
+
+```{r}
+library(class)
+
+set.seed(0426)
+yhat_knn3 <- knn(as.matrix(Wk.training[,3]), as.matrix(Wk.test[,3]), Wk.training[,9], k=3)
+table(Wk.test$Direction, yhat_knn3)
+
+Acc_knn3 <- (15+42)/104
+Acc_knn3
+
+yhat_knn100 <- knn(as.matrix(Wk.training[,3]), as.matrix(Wk.test[,3]), Wk.training[,9], k=100)
+table(Wk.test$Direction, yhat_knn100)
+
+Acc_knn100 <- (21+32)/104
+Acc_knn100
+```
+
+
+**Question 11**
+
+This question need 'Auto' data in ISLR package.
+
+```{r}
+library(ISLR)
+glimpse(Auto)
+summary(Auto)
+
+auto <- Auto
+auto$mpg01 <- ifelse(auto$mpg >= median(auto$mpg), 1, 0)
+
+cor(auto[,-9])
+pairs(auto, upper.panel = panel.cor)
+
+ggplot(auto, aes(factor(mpg01), cylinders)) + geom_boxplot()
+ggplot(auto, aes(factor(mpg01), displacement)) + geom_boxplot()
+ggplot(auto, aes(factor(mpg01), horsepower)) + geom_boxplot()
+ggplot(auto, aes(factor(mpg01), weight)) + geom_boxplot()
+```
+
+*Split datasets*
+
+```{r}
+n <- nrow(auto)
+idx <- 1:n
+training_idx <- sample(idx, n*0.6)
+validation_idx <- setdiff(idx, training_idx)
+training <- auto[training_idx,]
+validation <- auto[validation_idx,]
+```
+
+*LDA*
+
+```{r}
+auto.lda <- lda(mpg01 ~ cylinders + displacement + horsepower + weight, training)
+auto.lda
+
+auto_lda.yhat <- predict(auto.lda, newdata = validation)
+table(validation$mpg01, auto_lda.yhat$class)
+
+Acc_auto.lda <- (67+76)/157
+Acc_auto.lda
+```
+
+*QDA*
+
+```{r}
+auto.qda <- qda(mpg01 ~ cylinders + displacement + horsepower + weight, training)
+auto.qda
+
+auto_qda.yhat <- predict(auto.qda, newdata = validation)
+table(validation$mpg01, auto_qda.yhat$class)
+
+Acc_auto.qda <- (69+73)/157
+Acc_auto.qda
+```
+
+*Logistric Regression*
+
+```{r}
+auto.glm <- glm(mpg01 ~ cylinders + displacement + horsepower + weight, training, family='binomial')
+auto.glm %>% summary()
+
+auto_glm.yhat <- predict(auto.glm, newdata = validation, type='response')
+glm_pred <- rep('Down', 157)
+glm_pred[auto_glm.yhat > .5] <- 'Up'
+table(validation$mpg01, glm_pred)
+
+Acc_auto.glm <- (66+73)/157
+Acc_auto.glm
+```
+
+*KNN*
+
+```{r}
+library(class)
+
+set.seed(0426)
+auto_knn.yhat <- knn(training[,2:5], validation[,2:5], training[,10], k=70)
+table(validation$mpg01, auto_knn.yhat)
+
+Acc_knn1 <- (64 + 71)/157
+Acc_knn1
+
+Acc_knn3 <- (65 + 73)/157
+Acc_knn3
+
+Acc_knn10 <- (65 + 76)/157
+Acc_knn10
+
+Acc_knn30 <- (68 + 74)/157
+Acc_knn30
+```
+
+**Question 12**
+
+```{r}
+Power <- function(a){
+  2^a
+}
+
+Power2 <- function(x,a){
+  x^a
+}
+
+Power2(131,3)
+
+Power3 <- function(x,a){
+  result <- x^a
+  return(result)
+}
+
+x <- seq(1, 10, 0.1)
+y <- Power3(x,2)
+plot(x, y, log='xy')
+
+PlotPower <- function(x,a){
+  y <- x^a
+  plot(x, y)
+}
+
+PlotPower(1:10,3)
+```
+
+**Question 13**
+
+This question needs 'Boston' data.
+
+```{r}
+glimpse(Boston)
+boston <- Boston
+boston$crim01 <- ifelse(boston$crim >= median(boston$crim), 1, 0)
+```
+
+
+```{r}
+cor(boston[,-1])
+pairs(boston[,-1], upper.panel = panel.cor)
+```
+
+`indus` + `nox` + `age` + `dis` + `tax` have strong relastions with `crim01`.
+
+```{r}
+n_boston <- nrow(boston)
+boston_idx <- 1:n_boston
+b.training_idx <- sample(boston_idx, n*0.7)
+b.validation_idx <- setdiff(boston_idx, b.training_idx)
+b.training <- boston[b.training_idx,]
+b.validation <- boston[b.validation_idx,]
+```
+
+*GLM*
+
+```{r}
+bs.glm <- glm(crim01 ~ indus + nox + age + dis + tax, data = b.training, family='binomial')
+bs.glm %>% summary()
+
+bs.yprob_glm <- predict(bs.glm, newdata = b.validation, type='response')
+bs.yhat_glm <- ifelse(bs.yprob_glm >= 0.5, 1, 0)
+table(b.validation$crim01, bs.yhat_glm)
+mean(b.validation$crim01 == bs.yhat_glm)
+```
+
+*LDA*
+
+```{r}
+bs.lda <- lda(crim01 ~ indus + nox + age + dis + tax, data = b.training)
+bs.lda
+
+bs.yhat_lda <- predict(bs.lda, newdata = b.validation)
+table(b.validation$crim01, bs.yhat_lda$class)
+mean(b.validation$crim01 == bs.yhat_lda$class)
+```
+
+*QDA*
+
+```{r}
+bs.qda <- qda(crim01 ~ indus + nox + age + dis + tax, data = b.training)
+bs.qda
+
+bs.yhat_qda <- predict(bs.qda, newdata = b.validation)
+table(b.validation$crim01, bs.yhat_qda$class)
+mean(b.validation$crim01 == bs.yhat_qda$class)
+```
+
+*KNN*
+
+```{r}
+bs.yhat_knn <- knn(b.training[,c(3,5,7,8,10)], b.validation[,c(3,5,7,8,10)], b.training[,15], k=3)
+
+table(b.validation$crim01, bs.yhat_knn)
+mean(b.validation$crim01 == bs.yhat_knn)
+```
+
