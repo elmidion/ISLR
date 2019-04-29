@@ -1,0 +1,163 @@
+---
+title: "For solve the questions of chapter5 in ISLR"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Monday, April 29, 2019*"
+output: html_notebook
+---
+
+**Q. 5**
+
+This question needs the 'Default' data form ISLR package.
+
+```{r}
+library(ISLR)
+library(dplyr)
+glimpse(Default)
+df <- Default
+```
+
+First, the question makes to assume the logistic regression which predicts the probability of default using the values of income and balance.
+
+```{r}
+glm.all.fit <- glm(default ~ balance + income + student, data=df, family = 'binomial')
+```
+
+Now the dataset is divided to training and validation sets.
+
+```{r}
+n <- nrow(df)
+idx <- 1:n
+training_idx <- sample(idx, n*0.6)
+validation_idx <- setdiff(idx, training_idx)
+training <- df[training_idx,]
+validation <- df[validation_idx,]
+```
+
+And assume the logistic regression using only training dataset.
+
+```{r}
+glm.training.fit <- glm(default ~ income + balance + student, data=df, family='binomial')
+```
+
+Predict the 'default' status of validation set.
+
+```{r}
+yhat_glm <- ifelse(predict(glm.training.fit, newdata = validation) >= 0.5, "Yes", "No")
+```
+
+Make the confusion matrix.
+
+```{r}
+table(validation$default, yhat_glm)
+mean(validation$default != yhat_glm)
+```
+
+The validation set error is 2.525%.  
+When the logistic regression model involve the 'student' variable, the validation set error is 2.875%.  
+It doesn't seem that adding the 'student' variable leads the reducing of validation set error.
+
+```{r}
+glm(default ~ income + balance, data=df, family='binomial') %>% summary()
+
+boot.fn <- function(data, index){
+  fit <- glm(default ~ income + balance, data=df, family='binomial', subset=index)
+  return(coef(fit))
+}
+
+library(boot)
+boot(df, boot.fn, R=1000)
+```
+
+**Q. 7**
+
+This question needs the 'Weekly' data from ISLR package.  
+Assume the logistic regression model first.
+
+```{r}
+library(ISLR)
+glimpse(Weekly)
+wk <- Weekly
+wk.glm <- glm(Direction ~ Lag1 + Lag2, data=wk, family='binomial')
+```
+
+And assume the logistic regression model again except first observation in dataset.  
+Then predict the 'Direction' of first observation in dataset.
+Does the prediction correct?
+
+```{r}
+wk.glm1 <- glm(Direction ~ Lag1 + Lag2, data=wk[-1,], family='binomial')
+yhat_glm1 <- ifelse(predict(wk.glm1, newdata = wk[1,]) > 0.5, "Up", "Down")
+ifelse(wk[1, 'Direction'] == yhat_glm1, "Correct", "Incorrect")
+```
+
+Repeat this process to each observation of the dataset.
+
+```{r}
+cv.error <- rep(NA,1089)
+for (i in 1:1089){
+  fit <- glm(Direction ~ Lag1 + Lag2, data=wk[-i,], family='binomial')
+  yhat <- ifelse(predict(fit, newdata = wk[i,], type='response') > 0.5, "Up", "Down")
+  cv.error[i] <- ifelse(wk[i, 'Direction'] != yhat, 1, 0)
+}
+mean(cv.error)
+```
+
+**Q. 8**
+
+Make a dataset.
+
+```{r}
+set.seed(1)
+y <- rnorm(100)
+x <- rnorm(100)
+y = x-2*x^2 + rnorm(100)
+```
+
+Draw the scatter plot of X and Y.
+
+```{r}
+plot(x, y)
+```
+
+```{r}
+library(boot)
+set.seed(1)
+Data <- data.frame(x, y)
+fit.glm.1 <- glm(y ~ x)
+cv.glm(Data, fit.glm.1)$delta[1]
+```
+
+```{r}
+fit.glm.2 <- glm(y ~ poly(x, 2))
+cv.glm(Data, fit.glm.2)$delta[1]
+```
+
+```{r}
+fit.glm.3 <- glm(y ~ poly(x, 3))
+cv.glm(Data, fit.glm.3)$delta[1]
+```
+
+```{r}
+fit.glm.4 <- glm(y ~ poly(x, 4))
+cv.glm(Data, fit.glm.4)$delta[1]
+```
+
+
+**Q. 9**
+
+
+```{r}
+library(MASS)
+glimpse(Boston)
+
+mean(Boston$medv)
+sd(Boston$medv) / sqrt(dim(Boston)[1])
+
+set.seed(1)
+sd.fn <- function(data, index){
+  mu <- mean(data[index])
+  return(mu)
+}
+boot(Boston$medv, sd.fn, 1000)
+
+```
