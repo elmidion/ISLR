@@ -1,0 +1,174 @@
+---
+title: "For solve the questions of chapter6 in ISLR"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Thursday, May 2, 2019*"
+output: html_notebook
+---
+
+**Q. 8**
+
+```{r}
+X <- rnorm(100)
+e <- rnorm(100, 0, 1)
+
+Y = 1 + 2*X + 3*X^2 +4*X^3 + e
+df <- data.frame(X, X^2, X^3, X^4, X^5, X^6, X^7, X^8, X^9, X^10, Y)
+regfit <- regsubsets(Y ~ ., df, nvmax = 9)
+reg.summary <- summary(regfit)
+reg.summary$rsq
+
+par(mfrow=c(2,2))
+plot(reg.summary$rss, xlab='Number of Variables', type = 'l');points(9, reg.summary$rss[9], col="red", cex=2, pch=20)
+
+plot(reg.summary$cp, xlab='Number of Variables', type='l');points(3, reg.summary$cp[3], col="red", cex=2, pch=20)
+
+plot(reg.summary$bic, xlab='Number of Variables', type='l');points(3, reg.summary$bic[3], col="red", cex=2, pch=20)
+
+plot(reg.summary$adjr2, xlab='Number of Variables', type='l');points(5, reg.summary$adjr2[5], col="red", cex=2, pch=20)
+```
+
+```{r}
+regfit.fw <- regsubsets(Y ~ ., df, nvmax = 9, method='forward')
+reg.summary.fw <- summary(regfit.fw)
+reg.summary.fw$rsq
+
+par(mfrow=c(2,2))
+plot(reg.summary.fw$rss, xlab='Number of Variables', type = 'l');points(9, reg.summary.fw$rss[9], col="red", cex=2, pch=20)
+
+plot(reg.summary.fw$cp, xlab='Number of Variables', type='l');points(3, reg.summary.fw$cp[3], col="red", cex=2, pch=20)
+
+plot(reg.summary.fw$bic, xlab='Number of Variables', type='l');points(3, reg.summary.fw$bic[3], col="red", cex=2, pch=20)
+
+plot(reg.summary.fw$adjr2, xlab='Number of Variables', type='l');points(5, reg.summary.fw$adjr2[5], col="red", cex=2, pch=20)
+```
+
+
+```{r}
+regfit.bw <- regsubsets(Y ~ ., df, nvmax = 9, method='backward')
+reg.summary.bw <- summary(regfit.bw)
+reg.summary.bw$rsq
+
+par(mfrow=c(2,2))
+plot(reg.summary.bw$rss, xlab='Number of Variables', type = 'l');points(9, reg.summary.bw$rss[9], col="red", cex=2, pch=20)
+
+plot(reg.summary.bw$cp, xlab='Number of Variables', type='l');points(3, reg.summary.bw$cp[3], col="red", cex=2, pch=20)
+
+plot(reg.summary.bw$bic, xlab='Number of Variables', type='l');points(3, reg.summary.bw$bic[3], col="red", cex=2, pch=20)
+
+plot(reg.summary.bw$adjr2, xlab='Number of Variables', type='l');points(5, reg.summary.bw$adjr2[5], col="red", cex=2, pch=20)
+```
+
+```{r message=FALSE}
+library(glmnet)
+library(dplyr)
+
+training.x <- model.matrix(Y~.-1, df)
+training.y <- Y
+XY.glm <- cv.glmnet(training.x, training.y, alpha=1)
+XY.glm %>% plot()
+XY.glm$lambda.min
+coef(XY.glm, s='lambda.min')
+```
+
+```{r}
+Y2 <- 1 + 8*X^8 + e
+df2 <- data.frame(X, X^2, X^3, X^4, X^5, X^6, X^7, X^8, X^9, X^10, Y2)
+Y2.summary <- regsubsets(Y2~., df2, nvmax=9) %>% summary()
+
+par(mfrow=c(2,2))
+plot(Y2.summary$rss, xlab='Number of Variables', type = 'l');points(9, Y2.summary$rss[9], col="red", cex=2, pch=20)
+
+plot(Y2.summary$cp, xlab='Number of Variables', type='l');points(1, Y2.summary$cp[1], col="red", cex=2, pch=20)
+
+plot(Y2.summary$bic, xlab='Number of Variables', type='l');points(1, Y2.summary$bic[1], col="red", cex=2, pch=20)
+
+plot(Y2.summary$adjr2, xlab='Number of Variables', type='l');points(5, Y2.summary$adjr2[5], col="red", cex=2, pch=20)
+
+Y2.x <- model.matrix(Y2~.-1, df2)
+Y2.glm <- cv.glmnet(Y2.x, Y2, alpha=1)
+Y2.glm %>% plot()
+Y2.glm$lambda.min
+coef(Y2.glm, s='lambda.min')
+```
+
+**Q. 9**
+
+```{r}
+glimpse(College)
+
+n <- nrow(College)
+idx <- 1:n
+training_idx <- sample(idx, n*0.6)
+validation_idx <- setdiff(idx, training_idx)
+test_idx <- sample(validation_idx, n*0.2)
+validation_idx <- setdiff(validation_idx, test_idx)
+
+training <- College[training_idx,]
+validation <- College[validation_idx,]
+test <- College[test_idx,]
+
+yhat_lm <- predict(lm(Apps ~., data=training), newdata = validation)
+y_val <- validation$Apps
+
+source("C:/Users/KS-Park/OneDrive/Documents/rmse.R")
+RMSE_lm <- rmse(yhat_lm, y_val)
+```
+
+
+```{r}
+library(glmnet)
+training.x <- model.matrix(Apps ~.-1, training)
+col_ridge <- cv.glmnet(training.x, training$Apps, alpha=0)
+col_ridge %>% plot()
+
+coef(col_ridge, s='lambda.min')
+
+validation.x <- model.matrix(Apps~.-1, validation)
+yhat_ridge <- predict(col_ridge, s='lambda.min', newx = validation.x)
+RMSE_ridge <- rmse(yhat_ridge, y_val)
+```
+
+
+```{r}
+library(glmnet)
+col_lasso <- cv.glmnet(training.x, training$Apps, alpha=1)
+col_lasso %>% plot()
+
+coef(col_lasso, s='lambda.min')
+
+yhat_lasso <- predict(col_lasso, s='lambda.min', newx = validation.x)
+RMSE_lasso <- rmse(yhat_lasso, y_val)
+```
+
+
+
+```{r}
+library(pls)
+set.seed(0502)
+col_pcr <- pcr(Apps ~ ., data=training, scale=T, validation='CV')
+col_pcr %>% summary()
+
+validationplot(col_pcr, val.type = 'MSEP')
+
+yhat_pcr <- predict(col_pcr, newdata = validation, ncomp = 5)
+RMSE_pcr <- rmse(yhat_pcr, y_val)
+```
+
+
+```{r}
+set.seed(0502)
+col_pls <- plsr(Apps ~ ., data=training, scale=TRUE, validation='CV')
+col_pls %>% summary()
+
+
+validationplot(col_pls, val.type = 'MSEP')
+
+yhat_pls <- predict(col_pls, newdata = validation, ncomp=5)
+RMSE_pls <- rmse(yhat_pls, y_val)
+```
+
+
+
+```{r}
+data.frame(RMSE_lm, RMSE_ridge, RMSE_lasso, RMSE_pcr, RMSE_pls)
+```
