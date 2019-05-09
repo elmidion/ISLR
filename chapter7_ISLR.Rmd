@@ -1,0 +1,125 @@
+---
+title: "For solve the questions of chapter7 in ISLR"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Thursday, May 9, 2019*"
+output: html_notebook
+---
+
+**Q. 7**
+
+```{r}
+library(ISLR)
+library(boot)
+set.seed(0509)
+deltas <- rep(NA, 10)
+
+for(i in 1:10){
+  fit <- glm(wage ~ poly(age, i), data=Wage)
+  deltas[i] <- cv.glm(Wage, fit, K=10)$delta[1]
+  
+}
+
+plot(1:10, deltas, type = 'l', xlab='Degree', ylab='validation MSE')
+points(which.min(deltas), deltas[which.min(deltas)], col='red', cex=2, pch=20)
+
+fit1 <- lm(wage ~ age, data = Wage)
+fit2 <- lm(wage ~ poly(age, 2), data = Wage)
+fit3 <- lm(wage ~ poly(age, 3), data = Wage)
+fit4 <- lm(wage ~ poly(age, 4), data = Wage)
+fit5 <- lm(wage ~ poly(age, 5), data = Wage)
+fit6 <- lm(wage ~ poly(age, 6), data = Wage)
+fit7 <- lm(wage ~ poly(age, 7), data = Wage)
+fit8 <- lm(wage ~ poly(age, 8), data = Wage)
+fit9 <- lm(wage ~ poly(age, 9), data = Wage)
+fit10 <- lm(wage ~ poly(age, 10), data = Wage)
+anova(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10)
+```
+
+
+```{r}
+plot(wage ~ age, data = Wage, col = "darkgrey")
+agelims <- range(Wage$age)
+age.grid <- seq(from = agelims[1], to = agelims[2])
+fit <- lm(wage ~ poly(age, 9), data = Wage)
+preds <- predict(fit, newdata = list(age = age.grid))
+lines(age.grid, preds, col = "red", lwd = 2)
+```
+
+```{r}
+cvs <- rep(NA, 10)
+for (i in 2:10) {
+    Wage$age.cut <- cut(Wage$age, i)
+    fit <- glm(wage ~ age.cut, data = Wage)
+    cvs[i] <- cv.glm(Wage, fit, K = 10)$delta[1]
+}
+
+plot(2:10, cvs[-1], type = "l", xlab = "cuts", ylab = "validation MSE")
+points(which.min(cvs), cvs[which.min(cvs)], col = "red", cex = 2, pch = 20)
+```
+
+```{r}
+plot(wage ~ age, data = Wage, col = "darkgrey")
+agelims <- range(Wage$age)
+age.grid <- seq(from = agelims[1], to = agelims[2])
+fit <- glm(wage ~ cut(age, 8), data = Wage)
+preds <- predict(fit, data.frame(age = age.grid))
+lines(age.grid, preds, col = "red", lwd = 2)
+```
+
+```{r}
+set.seed(0509)
+library(gam)
+
+fit0 <- gam(wage ~ lo(year, span = 0.7) + s(age, 5) + education, data = Wage)
+fit1 <- gam(wage ~ lo(year, span = 0.7) + s(age, 5) + education + jobclass, data = Wage)
+fit2 <- gam(wage ~ lo(year, span = 0.7) + s(age, 5) + education + maritl, data = Wage)
+fit3 <- gam(wage ~ lo(year, span = 0.7) + s(age, 5) + education + jobclass + maritl, data = Wage)
+anova(fit0, fit1, fit2, fit3)
+```
+
+```{r}
+par(mfrow = c(3, 3))
+plot(fit3, se = T, col = "blue")
+```
+
+**Apply to 'diamonds' dataset**
+
+```{r}
+library(ggplot2)
+library(dplyr)
+glimpse(diamonds)
+
+plot(diamonds$carat, diamonds$price)
+table(cut(diamonds$carat, breaks = c(0, 1.0, 1.5, 2.0, 5.0)))
+
+dia.fit <- lm(price~cut(diamonds$carat, 6), data=diamonds)
+dia.fit %>% summary()
+```
+
+```{r}
+library(splines)
+dia2.fit <- lm(price ~ bs(carat, knots = c(1.00, 1.50, 2.00)), data=diamonds)
+dia2.pred <- predict(dia2.fit, newdata=list(carat=carat.x), se=T)
+
+plot(diamonds$carat, diamonds$price)
+lines(carat.x, dia2.pred$fit, col='red', lwd=2)
+```
+
+
+```{r}
+library(gam)
+glimpse(diamonds)
+dia.gam <- gam(price ~ s(carat) + cut + color + clarity, data=diamonds)
+
+par(mfrow=c(2,2))
+plot(dia.gam, se=TRUE, col='blue')
+```
+
+```{r}
+dia3.fit <- lm(price ~ ns(carat, knots = c(0.5, 0.7, 0.9, 1.0, 1.2, 1.5, 1.7, 2.0)) + cut + color + clarity, data=diamonds)
+
+par(mfrow=c(2,2))
+plot(dia.gam, se=TRUE, col='blue')
+```
+
+
