@@ -1,0 +1,153 @@
+---
+title: "For solve the questions of chapter8 in ISLR"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Friday, May 10, 2019*"
+output: html_notebook
+---
+
+**Q. 7**
+
+The dataset used in this question is the 'Boston' in 'MASS' libarary. 
+
+
+```{r}
+library(ISLR)
+library(MASS)
+library(randomForest)
+
+set.seed(0510)
+train <- sample(1:nrow(Boston), nrow(Boston)*0.6)
+y_test <- Boston$medv[-train]
+
+boston.rf825 <- randomForest(medv~., data = Boston[train,], mtry=8, ntree=25)
+#yhat_rf825 <- predict(boston.rf825, newdata = Boston[-train,])
+#mean((yhat_rf825-y_test)^2)
+
+boston.rf1025 <- randomForest(medv~., data = Boston[train,], mtry=10, ntree=25)
+
+boston.rf625 <- randomForest(medv~., data = Boston[train,], mtry=6, ntree=25)
+
+boston.rf425 <- randomForest(medv~., data = Boston[train,], mtry=4, ntree=25)
+
+plot(1:25, boston.rf825$mse, col='green', type='l', xlab='Number of Trees', ylab='Test MSE',)
+lines(1:25, boston.rf1025$mse, col='red')
+lines(1:25, boston.rf625$mse, col='blue')
+lines(1:25, boston.rf425$mse, col='purple')
+```
+
+**Q. 8**
+
+The data used in this question is the 'Carseats'.
+
+```{r}
+train <- sample(1:nrow(Carseats), nrow(Carseats)*0.6)
+test <- setdiff(1:nrow(Carseats), train)
+ytest_CS <- Carseats$Sales[test]
+
+library(rpart)
+CS.rt <- rpart(Sales ~ ., data = Carseats, subset = train)
+plot(CS.rt); text(CS.rt, use.n = T)
+yhat_CS.rt <- predict(CS.rt, newdata = Carseats[test,])
+mean((yhat_CS.rt-ytest_CS)^2)
+```
+
+```{r}
+set.seed(0510)
+CS.bag <- randomForest(Sales~., data=Carseats, mtry=10, subset=train)
+yhat_CS.bag <- predict(CS.bag, newdata = Carseats[test,])
+mean((yhat_CS.bag - ytest_CS)^2)
+importance(CS.bag)
+```
+
+```{r}
+set.seed(0510)
+CS.rf <- randomForest(Sales~., data=Carseats, mtry=4, subset=train)
+yhat_CS.rf <- predict(CS.rf, newdata = Carseats[test,])
+mean((yhat_CS.rf - ytest_CS)^2)
+importance(CS.rf)
+```
+
+**Q. 9**
+
+The data used in this question is the 'OJ' in the 'ISLR' library. 
+
+```{r}
+train.OJ <- sample(1:nrow(OJ), 800)
+test.OJ <- setdiff(1:nrow(OJ), train.OJ)
+ytest_OJ <- OJ$Purchase[test.OJ]
+
+library(rpart)
+OJ.dt <- rpart(Purchase ~ ., data=OJ, subset=train.OJ)
+OJ.dt
+
+plot(OJ.dt); text(OJ.dt, use.n= T)
+
+yhat_OJ.dt <- predict(OJ.dt, newdata = OJ[test.OJ,], type='class')
+table(ytest_OJ, yhat_OJ.dt)
+mean(ytest_OJ != yhat_OJ.dt)
+```
+
+**Q. 10**
+
+The data used in this question is the 'Hitters' data.
+
+```{r}
+Hitters <- na.omit(Hitters)
+Hitters$Salary.log <- log(Hitters$Salary)
+
+train.H <- Hitters[1:200,]
+test.H <- setdiff(Hitters, train.H)
+
+library(gbm)
+set.seed(0510)
+
+pows <- seq(-10, -0.2, by = 0.1)
+lambdas <- 10^pows
+train.err <- rep(NA, length(lambdas))
+
+for (i in 1:length(lambdas)) {
+    H.boost <- gbm(Salary.log ~ .-Salary, data = train.H, distribution = "gaussian", n.trees = 1000, shrinkage = lambdas[i])
+    yhat_H.boost <- predict(H.boost, newdata = train.H, n.trees = 1000)
+    train.err[i] <- mean((yhat_H.boost - train.H$Salary.log)^2)
+}
+
+test.err <- rep(NA, length(lambdas))
+
+for (i in 1:length(lambdas)) {
+    H.boost <- gbm(Salary.log ~ .-Salary, data = train.H, distribution = "gaussian", n.trees = 1000, shrinkage = lambdas[i])
+    yhat_H.boost <- predict(H.boost, newdata = test.H, n.trees = 1000)
+    test.err[i] <- mean((yhat_H.boost - test.H$Salary.log)^2)
+}
+
+plot(lambdas, train.err, type = "b", xlab = "Shrinkage values", ylab = "MSE", col='red')
+points(lambdas, test.err, type= 'b', col='green')
+
+summary(H.boost)
+```
+
+**Q. 11**
+
+The data used in this question is the 'Caravan' data.
+
+```{r}
+str(Caravan)
+
+library()
+
+rm(Caravan)
+
+Caravan$Purchase <- ifelse(Caravan$Purchase == "Yes", 1, 0)
+
+train.CR <- Caravan[1:1000,]
+test.CR <- setdiff(Caravan, train.CR)
+
+library(gbm)
+set.seed(0510)
+
+CR.gbm <- gbm(Purchase ~ ., data=train.CR[,-c(50,71)], distribution = 'gaussian', shrinkage = 0.01, n.trees = 1000)
+summary(CR.gbm)
+
+yhat_CR.gbm <- predict(CR.gbm, newdata = test.CR, n.trees = 1000, type='response')
+table(I(yhat_CR.gbm>0.2), test.CR$Purchase)
+```
+
