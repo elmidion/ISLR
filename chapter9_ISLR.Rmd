@@ -1,0 +1,116 @@
+---
+title: "For solve the questions of chapter9 in ISLR"
+author: "*Kiseong Park; Doctor, Data scientist*"
+date: "*Sunday, May 12, 2019*"
+output: html_notebook
+---
+
+**Q. 4**
+
+```{r}
+library(e1071)
+set.seed(0512)
+x <- rnorm(100)
+y <- 4 * x^2 + 1 + rnorm(100)
+class <- sample(100, 50)
+y[class] <- y[class] + 3
+y[-class] <- y[-class] - 3
+plot(x[class], y[class], col = "red", xlab = "X", ylab = "Y", ylim = c(-6, 30))
+points(x[-class], y[-class], col = "blue")
+
+z <- rep(-1, 100)
+z[class] <- 1
+
+dat <- data.frame(x = x, y = y, z = as.factor(z))
+train <- sample(100, 60)
+data.train <- dat[train, ]
+data.test <- dat[-train, ]
+svm.linear <- svm(z ~ ., data = data.train, kernel = "linear", cost = 10)
+plot(svm.linear, data.train)
+table(predict = predict(svm.linear, data.train), truth = data.train$z)
+
+svm.poly <- svm(z ~ ., data = data.train, kernel = "polynomial", cost = 10)
+plot(svm.poly, data.train)
+table(predict = predict(svm.poly, data.train), truth = data.train$z)
+
+svm.radial <- svm(z ~ ., data = data.train, kernel = "radial", gamma = 1, cost = 10)
+plot(svm.radial, data.train)
+table(predict = predict(svm.radial, data.train), truth = data.train$z)
+
+plot(svm.linear, data.test)
+table(predict = predict(svm.linear, data.test), truth = data.test$z)
+
+plot(svm.poly, data.test)
+table(predict = predict(svm.poly, data.test), truth = data.test$z)
+
+plot(svm.radial, data.test)
+table(predict = predict(svm.radial, data.test), truth = data.test$z)
+```
+
+**Q. 5**
+
+```{r}
+set.seed(0512)
+x1 <- runif(500) - 0.5
+x2 <- runif(500) - 0.5
+y <- 1 * (x1^2 - x2^2 > 0)
+
+plot(x1, x2, xlab = "X1", ylab = "X2", col = (4 - y), pch = (3 - y))
+
+logit.fit <- glm(y ~ x1 + x2, family = "binomial")
+summary(logit.fit)
+
+data <- data.frame(x1 = x1, x2 = x2, y = y)
+probs <- predict(logit.fit, data, type = "response")
+preds <- rep(0, 500)
+preds[probs >= 0.5] <- 1
+plot(data[preds == 1, ]$x1, data[preds == 1, ]$x2, col = (4 - 1), pch = (3 - 1), xlab = "X1", ylab = "X2")
+points(data[preds == 0, ]$x1, data[preds == 0, ]$x2, col = (4 - 0), pch = (3 - 0))
+
+logitnl.fit <- glm(y ~ poly(x1, 2) + poly(x2, 2) + I(x1 * x2), family = "binomial")
+summary(logitnl.fit)
+
+probs <- predict(logitnl.fit, data, type = "response")
+preds <- rep(0, 500)
+preds[probs > 0.5] <- 1
+plot(data[preds == 1, ]$x1, data[preds == 1, ]$x2, col = (4 - 1), pch = (3 - 1), xlab = "X1", ylab = "X2")
+points(data[preds == 0, ]$x1, data[preds == 0, ]$x2, col = (4 - 0), pch = (3 - 0))
+
+data$y <- as.factor(data$y)
+svmnl.fit <- svm(y ~ x1 + x2, data, kernel = "radial", gamma = 1)
+preds <- predict(svmnl.fit, data)
+plot(data[preds == 0, ]$x1, data[preds == 0, ]$x2, col = (4 - 0), pch = (3 - 0), xlab = "X1", ylab = "X2")
+points(data[preds == 1, ]$x1, data[preds == 1, ]$x2, col = (4 - 1), pch = (3 - 1))
+```
+
+**Q. 7**
+
+This question needs the 'Auto' data.
+
+```{r}
+library(ISLR)
+
+var <- ifelse(Auto$mpg > median(Auto$mpg), 1, 0)
+Auto$mpglevel <- as.factor(var)
+
+set.seed(0512)
+tune.out <- tune(svm, mpglevel ~ ., data = Auto, kernel = "linear", ranges = list(cost = c(0.01, 0.1, 1, 5, 10, 100, 1000)))
+summary(tune.out)
+
+tune.out <- tune(svm, mpglevel ~ ., data = Auto, kernel = "polynomial", ranges = list(cost = c(0.01, 0.1, 1, 5, 10, 100, 1000)))
+summary(tune.out)
+
+tune.out <- tune(svm, mpglevel ~ ., data = Auto, kernel = "radial", ranges = list(cost = c(0.01, 0.1, 1, 5, 10, 100, 1000), gamma = c(0.01, 0.1, 1, 5, 10, 100)))
+summary(tune.out)
+
+svm.linear <- svm(mpglevel ~ ., data = Auto, kernel = "linear", cost = 1)
+svm.poly <- svm(mpglevel ~ ., data = Auto, kernel = "polynomial", cost = 100, degree = 2)
+svm.radial <- svm(mpglevel ~ ., data = Auto, kernel = "radial", cost = 100, gamma = 0.01)
+plotpairs = function(fit) {
+    for (name in names(Auto)[!(names(Auto) %in% c("mpg", "mpglevel", "name"))]) {
+        plot(fit, Auto, as.formula(paste("mpg~", name, sep = "")))
+    }
+}
+plotpairs(svm.linear)
+```
+
